@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "target": "ESNext",
+    "strict": true,
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "lib": ["ESNext"],
+    "strictFunctionTypes": false,
+    "skipLibCheck": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "typeRoots": ["node_modules/@types", "src/@types"]
+  },
+  "include": ["src", "scripts", "contracts"]
+}

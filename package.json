@@ -1,0 +1,62 @@
+{
+  "name": "@fancysofthq/supatalent-api",
+  "version": "0.1.0",
+  "description": "API for the SupaTalent application",
+  "author": {
+    "name": "Fancy Software",
+    "url": "http://fancysoft.eth"
+  },
+  "repository": "git+https://github.com/fancysofthq/supatalent-api.git",
+  "license": "UNLICENSED",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": "^18.0",
+    "npm": "^8.0"
+  },
+  "scripts": {
+    "build": "tsc && resolve-tspaths --src .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon",
+    "start": "node dist/src/index.js",
+    "db:migrate": "node dist/scripts/db/migrate.js"
+  },
+  "dependencies": {
+    "@ethersproject/contracts": "^5.7.0",
+    "@ethersproject/providers": "^5.7.2",
+    "@koa/cors": "^3.3.0",
+    "@koa/router": "^10.1.1",
+    "@multiformats/sha3": "^2.0.14",
+    "better-sqlite3": "^8.0.1",
+    "dotenv": "^16.0.0",
+    "ethers": "^5.7.2",
+    "jsonwebtoken": "^8.5.1",
+    "koa": "^2.13.4",
+    "koa-bodyparser": "^4.3.0",
+    "koa-logger": "^3.2.1",
+    "multiformats": "^10.0",
+    "nanoid": "^4.0.0",
+    "node-fetch": "^3.3.0",
+    "p-retry": "^5.1.2",
+    "web3-token": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.3",
+    "@types/jsonwebtoken": "^8.5.9",
+    "@types/koa": "^2.13.5",
+    "@types/koa-bodyparser": "^4.3.10",
+    "@types/koa-logger": "^3.1.2",
+    "@types/koa__cors": "^3.3.0",
+    "@types/koa__router": "^12.0.0",
+    "@types/node": "^18.11.9",
+    "nodemon": "^2.0.20",
+    "resolve-tspaths": "^0.8.3",
+    "typescript": "^4.9.3"
+  },
+  "files": [
+    "dist/src"
+  ]
+}

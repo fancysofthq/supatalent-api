@@ -1,0 +1,8 @@
+{
+  "watch": [
+    "src",
+    "contracts"
+  ],
+  "ext": "ts",
+  "exec": "pnpm run build && pnpm run start"
+}

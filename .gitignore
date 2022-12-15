@@ -1,0 +1,8 @@
+*.local
+*.local.*
+node_modules
+dist
+.env
+
+server.crt
+server.key
