@@ -28,7 +28,7 @@ export class Withdraw extends Event {
         log_index,
         tx_hash,
         listing_id,
-        to,
+        "to",
         amount
       ) VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT DO NOTHING`
