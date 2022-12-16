@@ -6,7 +6,7 @@ import { OpenStoreFactory } from "@/../contracts/OpenStoreFactory.js";
 
 console.log("Connecting to JSON-RPC provider at", config.eth.rpcUrl);
 const provider = new ethers.providers.JsonRpcProvider(config.eth.rpcUrl);
-await timeout(1000, provider.ready, "Provider not ready");
+await timeout(5000, provider.ready, "Provider not ready");
 
 const blockNumber = await provider.getBlockNumber();
 console.log("Current block number:", blockNumber);
