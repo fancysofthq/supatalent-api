@@ -26,7 +26,7 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
     "balanceOf(address,uint256)": FunctionFragment;
     "balanceOfBatch(address[],uint256[])": FunctionFragment;
     "claim(uint256,bytes,uint32,uint32,address,uint8)": FunctionFragment;
-    "codecOf(uint256)": FunctionFragment;
+    "digestSizeOf(uint256)": FunctionFragment;
     "exists(uint256)": FunctionFragment;
     "expiredAt(uint256)": FunctionFragment;
     "hasExpired(uint256)": FunctionFragment;
@@ -35,8 +35,10 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
     "mint(address,uint256,uint256,bytes,bool,uint64)": FunctionFragment;
     "mintBatch(address,uint256[],uint256[],bytes,bool,uint64)": FunctionFragment;
     "multicall(bytes[])": FunctionFragment;
-    "redeem(address,uint256,uint256)": FunctionFragment;
-    "redeemBatch(address,uint256[],uint256[])": FunctionFragment;
+    "multicodecOf(uint256)": FunctionFragment;
+    "multihashOf(uint256)": FunctionFragment;
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)": FunctionFragment;
+    "onERC1155Received(address,address,uint256,uint256,bytes)": FunctionFragment;
     "royaltyInfo(uint256,uint256)": FunctionFragment;
     "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": FunctionFragment;
     "safeTransferFrom(address,address,uint256,uint256,bytes)": FunctionFragment;
@@ -70,7 +72,7 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "codecOf",
+    functionFragment: "digestSizeOf",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -120,12 +122,20 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
     values: [BytesLike[]]
   ): string;
   encodeFunctionData(
-    functionFragment: "redeem",
-    values: [string, BigNumberish, BigNumberish]
+    functionFragment: "multicodecOf",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "redeemBatch",
-    values: [string, BigNumberish[], BigNumberish[]]
+    functionFragment: "multihashOf",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "onERC1155BatchReceived",
+    values: [string, string, BigNumberish[], BigNumberish[], BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "onERC1155Received",
+    values: [string, string, BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "royaltyInfo",
@@ -160,7 +170,10 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "claim", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "codecOf", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "digestSizeOf",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "exists", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "expiredAt", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "hasExpired", data: BytesLike): Result;
@@ -175,9 +188,20 @@ interface IpftRedeemableInterface extends ethers.utils.Interface {
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "mintBatch", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "multicall", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "redeem", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "redeemBatch",
+    functionFragment: "multicodecOf",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "multihashOf",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "onERC1155BatchReceived",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "onERC1155Received",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -284,7 +308,7 @@ export class IpftRedeemable extends Contract {
     claim(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
@@ -294,22 +318,22 @@ export class IpftRedeemable extends Contract {
     "claim(uint256,bytes,uint32,uint32,address,uint8)"(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
-    codecOf(
-      tokenId: BigNumberish,
+    digestSizeOf(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<{
       0: number;
     }>;
 
-    "codecOf(uint256)"(
-      tokenId: BigNumberish,
+    "digestSizeOf(uint256)"(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<{
       0: number;
@@ -437,33 +461,77 @@ export class IpftRedeemable extends Contract {
       overrides?: Overrides
     ): Promise<ContractTransaction>;
 
-    redeem(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
-    ): Promise<ContractTransaction>;
+    multicodecOf(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: number;
+    }>;
 
-    "redeem(address,uint256,uint256)"(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
-    ): Promise<ContractTransaction>;
+    "multicodecOf(uint256)"(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: number;
+    }>;
 
-    redeemBatch(
-      from: string,
+    multihashOf(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: number;
+    }>;
+
+    "multihashOf(uint256)"(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: number;
+    }>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
-    ): Promise<ContractTransaction>;
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
 
-    "redeemBatch(address,uint256[],uint256[])"(
-      from: string,
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
-    ): Promise<ContractTransaction>;
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
+
+    "onERC1155Received(address,address,uint256,uint256,bytes)"(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<{
+      0: string;
+    }>;
 
     royaltyInfo(
       tokenId: BigNumberish,
@@ -612,7 +680,7 @@ export class IpftRedeemable extends Contract {
   claim(
     id: BigNumberish,
     content: BytesLike,
-    codec: BigNumberish,
+    multicodec: BigNumberish,
     tagOffset: BigNumberish,
     author: string,
     royalty: BigNumberish,
@@ -622,17 +690,17 @@ export class IpftRedeemable extends Contract {
   "claim(uint256,bytes,uint32,uint32,address,uint8)"(
     id: BigNumberish,
     content: BytesLike,
-    codec: BigNumberish,
+    multicodec: BigNumberish,
     tagOffset: BigNumberish,
     author: string,
     royalty: BigNumberish,
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
-  codecOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<number>;
+  digestSizeOf(arg0: BigNumberish, overrides?: CallOverrides): Promise<number>;
 
-  "codecOf(uint256)"(
-    tokenId: BigNumberish,
+  "digestSizeOf(uint256)"(
+    arg0: BigNumberish,
     overrides?: CallOverrides
   ): Promise<number>;
 
@@ -729,33 +797,58 @@ export class IpftRedeemable extends Contract {
     overrides?: Overrides
   ): Promise<ContractTransaction>;
 
-  redeem(
-    from: string,
-    id: BigNumberish,
-    amount: BigNumberish,
-    overrides?: Overrides
-  ): Promise<ContractTransaction>;
+  multicodecOf(
+    tokenId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<number>;
 
-  "redeem(address,uint256,uint256)"(
-    from: string,
-    id: BigNumberish,
-    amount: BigNumberish,
-    overrides?: Overrides
-  ): Promise<ContractTransaction>;
+  "multicodecOf(uint256)"(
+    tokenId: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<number>;
 
-  redeemBatch(
-    from: string,
+  multihashOf(arg0: BigNumberish, overrides?: CallOverrides): Promise<number>;
+
+  "multihashOf(uint256)"(
+    arg0: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<number>;
+
+  onERC1155BatchReceived(
+    arg0: string,
+    arg1: string,
     ids: BigNumberish[],
-    amounts: BigNumberish[],
-    overrides?: Overrides
-  ): Promise<ContractTransaction>;
+    values: BigNumberish[],
+    arg4: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
-  "redeemBatch(address,uint256[],uint256[])"(
-    from: string,
+  "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"(
+    arg0: string,
+    arg1: string,
     ids: BigNumberish[],
-    amounts: BigNumberish[],
-    overrides?: Overrides
-  ): Promise<ContractTransaction>;
+    values: BigNumberish[],
+    arg4: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  onERC1155Received(
+    arg0: string,
+    arg1: string,
+    id: BigNumberish,
+    value: BigNumberish,
+    arg4: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
+  "onERC1155Received(address,address,uint256,uint256,bytes)"(
+    arg0: string,
+    arg1: string,
+    id: BigNumberish,
+    value: BigNumberish,
+    arg4: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   royaltyInfo(
     tokenId: BigNumberish,
@@ -883,7 +976,7 @@ export class IpftRedeemable extends Contract {
     claim(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
@@ -893,17 +986,20 @@ export class IpftRedeemable extends Contract {
     "claim(uint256,bytes,uint32,uint32,address,uint8)"(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    codecOf(tokenId: BigNumberish, overrides?: CallOverrides): Promise<number>;
+    digestSizeOf(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<number>;
 
-    "codecOf(uint256)"(
-      tokenId: BigNumberish,
+    "digestSizeOf(uint256)"(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<number>;
 
@@ -1003,33 +1099,58 @@ export class IpftRedeemable extends Contract {
       overrides?: CallOverrides
     ): Promise<string[]>;
 
-    redeem(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
+    multicodecOf(
+      tokenId: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<number>;
 
-    "redeem(address,uint256,uint256)"(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
+    "multicodecOf(uint256)"(
+      tokenId: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<number>;
 
-    redeemBatch(
-      from: string,
+    multihashOf(arg0: BigNumberish, overrides?: CallOverrides): Promise<number>;
+
+    "multihashOf(uint256)"(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<number>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
+      values: BigNumberish[],
+      arg4: BytesLike,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<string>;
 
-    "redeemBatch(address,uint256[],uint256[])"(
-      from: string,
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
+      values: BigNumberish[],
+      arg4: BytesLike,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<string>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    "onERC1155Received(address,address,uint256,uint256,bytes)"(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     royaltyInfo(
       tokenId: BigNumberish,
@@ -1195,7 +1316,7 @@ export class IpftRedeemable extends Contract {
     claim(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
@@ -1205,20 +1326,20 @@ export class IpftRedeemable extends Contract {
     "claim(uint256,bytes,uint32,uint32,address,uint8)"(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
       overrides?: Overrides
     ): Promise<BigNumber>;
 
-    codecOf(
-      tokenId: BigNumberish,
+    digestSizeOf(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "codecOf(uint256)"(
-      tokenId: BigNumberish,
+    "digestSizeOf(uint256)"(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -1318,32 +1439,60 @@ export class IpftRedeemable extends Contract {
       overrides?: Overrides
     ): Promise<BigNumber>;
 
-    redeem(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
+    multicodecOf(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "redeem(address,uint256,uint256)"(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
+    "multicodecOf(uint256)"(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    redeemBatch(
-      from: string,
+    multihashOf(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "multihashOf(uint256)"(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    "redeemBatch(address,uint256[],uint256[])"(
-      from: string,
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "onERC1155Received(address,address,uint256,uint256,bytes)"(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     royaltyInfo(
@@ -1472,7 +1621,7 @@ export class IpftRedeemable extends Contract {
     claim(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
@@ -1482,20 +1631,20 @@ export class IpftRedeemable extends Contract {
     "claim(uint256,bytes,uint32,uint32,address,uint8)"(
       id: BigNumberish,
       content: BytesLike,
-      codec: BigNumberish,
+      multicodec: BigNumberish,
       tagOffset: BigNumberish,
       author: string,
       royalty: BigNumberish,
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
-    codecOf(
-      tokenId: BigNumberish,
+    digestSizeOf(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "codecOf(uint256)"(
-      tokenId: BigNumberish,
+    "digestSizeOf(uint256)"(
+      arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -1601,32 +1750,60 @@ export class IpftRedeemable extends Contract {
       overrides?: Overrides
     ): Promise<PopulatedTransaction>;
 
-    redeem(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
+    multicodecOf(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "redeem(address,uint256,uint256)"(
-      from: string,
-      id: BigNumberish,
-      amount: BigNumberish,
-      overrides?: Overrides
+    "multicodecOf(uint256)"(
+      tokenId: BigNumberish,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    redeemBatch(
-      from: string,
+    multihashOf(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "multihashOf(uint256)"(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "redeemBatch(address,uint256[],uint256[])"(
-      from: string,
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)"(
+      arg0: string,
+      arg1: string,
       ids: BigNumberish[],
-      amounts: BigNumberish[],
-      overrides?: Overrides
+      values: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "onERC1155Received(address,address,uint256,uint256,bytes)"(
+      arg0: string,
+      arg1: string,
+      id: BigNumberish,
+      value: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     royaltyInfo(
