@@ -7,7 +7,6 @@ export function open(trace: boolean = false): Database {
   // console.debug("Opening database connection", path);
 
   const db = new BetterSqlite3(path, {
-    fileMustExist: true,
     verbose: trace ? console.log : undefined,
   });
 
