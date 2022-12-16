@@ -4,8 +4,8 @@ import { Event } from "@/models/Event.js";
 import { Database } from "better-sqlite3";
 
 export class Withdraw extends Event {
-  static BLOCK_COLUMN = "openstore_replenish_block";
-  static TABLE_NAME = "openstore_replenish";
+  static BLOCK_COLUMN = "openstore_withdraw_block";
+  static TABLE_NAME = "openstore_withdraw";
 
   static parse(event: ethers.Event): Withdraw[] {
     return [
