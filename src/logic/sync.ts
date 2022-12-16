@@ -66,7 +66,7 @@ async function syncTalent(cancel: () => boolean) {
         const promises = events.map(async (event) => {
           map.set(event.id._hex, {
             author: new Address(await contract.authorOf(event.id)),
-            codec: await contract.codecOf(event.id),
+            codec: await contract.multicodecOf(event.id),
           });
         });
 
