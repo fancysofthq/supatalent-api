@@ -1,4 +1,4 @@
-import Address from "@/models/address.js";
+import Address from "@/models/Address.js";
 import { BigNumber, ethers } from "ethers";
 import { Event } from "@/models/Event.js";
 import { Database } from "better-sqlite3";
