@@ -5,7 +5,7 @@ import * as EventDB from "./EventDB.js";
 import * as Talent from "@/models/Talent/index.js";
 import * as OpenStore from "@/models/OpenStore/index.js";
 import * as db from "@/services/db.js";
-import { provider } from "@/services/eth.js";
+import { getProvider } from "@/services/eth.js";
 import Address from "@/models/Address.js";
 import { BigNumber } from "ethers";
 
@@ -14,13 +14,15 @@ export default async function sync(cancel: () => boolean) {
 }
 
 async function syncTalent(cancel: () => boolean) {
+  const provider = await getProvider();
+
   const contract = TalentFactory.connect(
     config.eth.talentAddress.toString(),
     provider
   );
 
   const deployBlock = (await provider.getTransaction(config.eth.talentTx))
-    .blockNumber;
+    ?.blockNumber;
   if (!deployBlock) throw new Error("Talent deploy block not found");
 
   await Promise.all([
@@ -79,13 +81,15 @@ async function syncTalent(cancel: () => boolean) {
 }
 
 async function syncOpenStore(cancel: () => boolean) {
+  const provider = await getProvider();
+
   const contract = OpenStoreFactory.connect(
     config.eth.openStoreAddress.toString(),
     provider
   );
 
   const deployBlock = (await provider.getTransaction(config.eth.openStoreTx))
-    .blockNumber;
+    ?.blockNumber;
   if (!deployBlock) throw new Error("OpenStore deploy block not found");
 
   await Promise.all([

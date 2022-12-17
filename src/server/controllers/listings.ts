@@ -1,12 +1,10 @@
 import db from "@/services/db.js";
 import Router from "@koa/router";
-import { keccak256 } from "@multiformats/sha3";
 import { CID } from "multiformats/cid";
-import { digest } from "multiformats";
-import { provider, talentContract, openStoreContract } from "@/services/eth.js";
-import Address from "@/models/Address.js";
+import { getProvider } from "@/services/eth.js";
 import config from "@/config.js";
-import { ethers, utils } from "ethers";
+import { ethers } from "ethers";
+import { OpenStoreFactory } from "@/../contracts/OpenStoreFactory.js";
 
 export type ShortListingDTO = {
   id: string;
@@ -63,6 +61,13 @@ export default function setupListingsController(router: Router) {
 
   router.get("/v1/listings/:id", async (ctx, next) => {
     ctx.set("Cache-Control", "public, max-age=60");
+
+    const provider = await getProvider();
+
+    const openStoreContract = OpenStoreFactory.connect(
+      config.eth.openStoreAddress.toString(),
+      provider
+    );
 
     const listing = await openStoreContract.getListing(ctx.params.id);
 

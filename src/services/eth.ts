@@ -1,29 +1,22 @@
 import config from "../config.js";
 import { ethers } from "ethers";
 import { timeout } from "@/utils.js";
-import { IpftRedeemableFactory } from "@/../contracts/IpftRedeemableFactory.js";
-import { OpenStoreFactory } from "@/../contracts/OpenStoreFactory.js";
+import pRetry from "p-retry";
 
 console.log("Connecting to JSON-RPC provider at", config.eth.rpcUrl);
-const provider = new ethers.providers.JsonRpcProvider(config.eth.rpcUrl);
-await timeout(5000, provider.ready, "Provider not ready");
+let provider = new ethers.providers.JsonRpcProvider(config.eth.rpcUrl);
 
-const blockNumber = await provider.getBlockNumber();
-console.log("Current block number:", blockNumber);
+export async function getProvider(): Promise<ethers.providers.JsonRpcProvider> {
+  await pRetry(() => timeout(5000, provider.ready), {
+    onFailedAttempt: (err) => {
+      console.warn(err);
+      console.log("Connecting to JSON-RPC provider at", config.eth.rpcUrl);
+      provider = new ethers.providers.JsonRpcProvider(config.eth.rpcUrl);
+    },
+  });
 
-export { provider };
-
-const talentContract = IpftRedeemableFactory.connect(
-  config.eth.talentAddress.toString(),
-  provider
-);
-
-const openStoreContract = OpenStoreFactory.connect(
-  config.eth.openStoreAddress.toString(),
-  provider
-);
-
-export { talentContract, openStoreContract };
+  return provider;
+}
 
 // TODO: Store confirmed txes, disallow re-use.
 export async function confirmTx(
@@ -32,7 +25,7 @@ export async function confirmTx(
   to: string,
   requiredConfirmations: number
 ): Promise<void> {
-  const tx = await provider.getTransaction(txHash);
+  const tx = await (await getProvider()).getTransaction(txHash);
 
   if (!tx) throw new Error("Invalid transaction");
 

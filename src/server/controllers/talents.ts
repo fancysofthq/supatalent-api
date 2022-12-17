@@ -3,10 +3,11 @@ import Router from "@koa/router";
 import { keccak256 } from "@multiformats/sha3";
 import { CID } from "multiformats/cid";
 import { digest } from "multiformats";
-import { provider, talentContract } from "@/services/eth.js";
+import { getProvider } from "@/services/eth.js";
 import Address from "@/models/Address.js";
 import { ethers, utils } from "ethers";
 import config from "@/config.js";
+import { IpftRedeemableFactory } from "@/../contracts/IpftRedeemableFactory.js";
 
 export type ShortTalentDTO = {
   cid: string;
@@ -132,6 +133,12 @@ export default function setupTalentsController(router: Router) {
 
     if (!blockNumber) ctx.throw(404, "Talent not found");
 
+    const provider = await getProvider();
+    const talentContract = IpftRedeemableFactory.connect(
+      config.eth.talentAddress.toString(),
+      provider
+    );
+
     const [createdAt, author, finalized, expiredAt, royaltyInfo, editions] =
       await Promise.all([
         (await provider.getBlock(blockNumber)).timestamp,
@@ -170,6 +177,12 @@ export default function setupTalentsController(router: Router) {
     }
 
     const id = "0x" + Buffer.from(cid.multihash.digest).toString("hex");
+
+    const provider = await getProvider();
+    const talentContract = IpftRedeemableFactory.connect(
+      config.eth.talentAddress.toString(),
+      provider
+    );
 
     // Mint
     const mints: Promise<EventMintDTO[]> = Promise.all(
@@ -325,6 +338,12 @@ export default function setupTalentsController(router: Router) {
     }
 
     const id = "0x" + Buffer.from(cid.multihash.digest).toString("hex");
+
+    const provider = await getProvider();
+    const talentContract = IpftRedeemableFactory.connect(
+      config.eth.talentAddress.toString(),
+      provider
+    );
 
     const price = (
       await db

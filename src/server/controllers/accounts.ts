@@ -1,13 +1,12 @@
 import db from "@/services/db.js";
 import Router from "@koa/router";
-import { keccak256 } from "@multiformats/sha3";
 import { CID } from "multiformats/cid";
-import { digest } from "multiformats";
-import { provider, talentContract } from "@/services/eth.js";
+import { getProvider } from "@/services/eth.js";
 import Address from "@/models/Address.js";
-import { ethers, utils } from "ethers";
+import { ethers } from "ethers";
 import config from "@/config.js";
 import * as Talents from "./talents.js";
+import { IpftRedeemableFactory } from "@/../contracts/IpftRedeemableFactory.js";
 
 export default function setupAccountsController(router: Router) {
   router.get("/v1/accounts/:address/talentBalance/:cid", async (ctx, next) => {
@@ -24,6 +23,13 @@ export default function setupAccountsController(router: Router) {
       return;
     }
 
+    const provider = await getProvider();
+
+    const talentContract = IpftRedeemableFactory.connect(
+      config.eth.talentAddress.toString(),
+      provider
+    );
+
     ctx.body = (
       await talentContract.balanceOf(address.toString(), cid.multihash.digest)
     )._hex;
@@ -33,6 +39,8 @@ export default function setupAccountsController(router: Router) {
     if (typeof ctx.params.address !== "string")
       ctx.throw(400, "Invalid address");
     const address = new Address(ctx.params.address);
+
+    const provider = await getProvider();
 
     // List
     const lists: Promise<Talents.EventListDTO[]> = Promise.all(
