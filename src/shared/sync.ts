@@ -6,7 +6,7 @@ import { timer } from "@/utils";
 import {
   TypedEvent,
   TypedEventFilter,
-} from "@fancysofthq/contracts/typechain/common";
+} from "@fancysoft/contracts/typechain/common";
 
 export interface Job {
   readonly eventTable: string;

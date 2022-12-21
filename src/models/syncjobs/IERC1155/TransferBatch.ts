@@ -1,5 +1,5 @@
-import { IERC1155__factory } from "@fancysofthq/contracts/typechain";
-import { TransferBatchEvent } from "@fancysofthq/contracts/typechain/@openzeppelin/contracts/token/ERC1155/IERC1155";
+import { IERC1155__factory } from "@fancysoft/contracts/typechain";
+import { TransferBatchEvent } from "@fancysoft/contracts/typechain/@openzeppelin/contracts/token/ERC1155/IERC1155";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
 import { Address, Bytes, Hash } from "@/models/Bytes";

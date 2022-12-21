@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@ethersproject/contracts': ^5.7.0
   '@ethersproject/providers': ^5.7.2
-  '@fancysofthq/contracts': ^0.1.0-rc1
+  '@fancysoft/contracts': ^0.1.0-rc2
   '@koa/cors': ^3.3.0
   '@koa/router': ^10.1.1
   '@multiformats/sha3': ^2.0.14
@@ -34,7 +34,7 @@ specifiers:
 dependencies:
   '@ethersproject/contracts': 5.7.0
   '@ethersproject/providers': 5.7.2
-  '@fancysofthq/contracts': 0.1.0-rc1
+  '@fancysoft/contracts': 0.1.0-rc2
   '@koa/cors': 3.4.3
   '@koa/router': 10.1.1
   '@multiformats/sha3': 2.0.14
@@ -381,8 +381,8 @@ packages:
       '@ethersproject/strings': 5.7.0
     dev: false
 
-  /@fancysofthq/contracts/0.1.0-rc1:
-    resolution: {integrity: sha512-wkPcb8USQVaT2qkUAHj60P2vS252F9ecpw2SteKSWrxDQx+IQLzlBfZeKrVbfd40Gl2WSIgkrRFEsHbJSdcwkA==, tarball: download/@fancysofthq/contracts/0.1.0-rc1/7d3c8f01d4e6692e0c2c1a3c079c92a7b37b49ef}
+  /@fancysoft/contracts/0.1.0-rc2:
+    resolution: {integrity: sha512-yy7qX01z50rjEa+7idBRNgodkutF6XTAkS+bdSxnTDeKpZYpBWy+gO3JOF3hSb/vL7aScxvMHM5FN4WyV+SH5Q==}
     engines: {node: ^18.0}
     dependencies:
       '@ethersproject/abi': 5.7.0

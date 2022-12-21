@@ -1,5 +1,5 @@
-import { IIPNFT__factory } from "@fancysofthq/contracts/typechain";
-import { ClaimEvent } from "@fancysofthq/contracts/typechain/@nxsf/ipnft/contracts/IIPNFT";
+import { IIPNFT__factory } from "@fancysoft/contracts/typechain";
+import { ClaimEvent } from "@fancysoft/contracts/typechain/@nxsf/ipnft/contracts/IIPNFT";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
 import { Address, Bytes, Hash } from "@/models/Bytes";

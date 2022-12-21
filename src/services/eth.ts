@@ -5,7 +5,7 @@ import pRetry from "p-retry";
 import {
   IPNFT1155Redeemable__factory,
   NFTFair__factory,
-} from "@fancysofthq/contracts/typechain";
+} from "@fancysoft/contracts/typechain";
 
 console.log("Connecting to JSON-RPC provider at", config.eth.rpcUrl);
 export const provider = new ethers.providers.JsonRpcProvider(config.eth.rpcUrl);

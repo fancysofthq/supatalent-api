@@ -1,5 +1,5 @@
-import { NFTFair__factory } from "@fancysofthq/contracts/typechain";
-import { WithdrawEvent } from "@fancysofthq/contracts/typechain/contracts/NFTFair";
+import { NFTFair__factory } from "@fancysoft/contracts/typechain";
+import { WithdrawEvent } from "@fancysoft/contracts/typechain/contracts/NFTFair";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
 import { Address, Bytes, Hash } from "@/models/Bytes";

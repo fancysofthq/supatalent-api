@@ -1,5 +1,5 @@
-import { IPNFT1155Redeemable__factory } from "@fancysofthq/contracts/typechain";
-import { MintEvent } from "@fancysofthq/contracts/typechain/contracts/IPNFT1155Redeemable";
+import { IPNFT1155Redeemable__factory } from "@fancysoft/contracts/typechain";
+import { MintEvent } from "@fancysoft/contracts/typechain/contracts/IPNFT1155Redeemable";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
 import { Address, Bytes, Hash } from "@/models/Bytes";
