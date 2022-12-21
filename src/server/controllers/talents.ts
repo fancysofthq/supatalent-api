@@ -1,65 +1,11 @@
 import db from "@/services/db.js";
 import Router from "@koa/router";
-import { keccak256 } from "@multiformats/sha3";
 import { CID } from "multiformats/cid";
 import { digest } from "multiformats";
-import { getProvider } from "@/services/eth.js";
-import Address from "@/models/Address.js";
-import { ethers, utils } from "ethers";
+import { talentContract, nftFairContract } from "@/services/eth.js";
+import { Address, Bytes, Hash } from "@/models/Bytes.js";
+import { BigNumber, ethers, utils } from "ethers";
 import config from "@/config.js";
-import { IpftRedeemableFactory } from "@/../contracts/IpftRedeemableFactory.js";
-
-export type ShortTalentDTO = {
-  cid: string;
-};
-
-export type TalentDTO = {
-  cid: string;
-  createdAt: number; // Timestamp in
-  author: string;
-  royalty: number; // 0-1
-
-  // Dynamic info
-  finalized: boolean;
-  expiredAt: number; // Timestamp in seconds
-  editions: number; // TODO: BigNumber
-};
-
-export type BasicEventDTO = {
-  blockNumber: number;
-  logIndex: number;
-  timestamp: number; // In seconds
-  txHash: string;
-};
-
-export type EventMintDTO = BasicEventDTO & {
-  type: "mint";
-  author: string; // Address
-  amount: string; // BigNumber hex
-};
-
-export type EventListDTO = BasicEventDTO & {
-  type: "list";
-  listingId: string; // BigNumber hex
-  seller: string; // Address
-  amount: string; // BigNumber hex
-  price: string; // BigNumber hex
-};
-
-export type EventPurchaseDTO = BasicEventDTO & {
-  type: "purchase";
-  listingId: string; // BigNumber hex
-  buyer: string; // Address
-  tokenAmount: string; // BigNumber hex
-  income: string; // BigNumber hex
-};
-
-export type EventTransferDTO = BasicEventDTO & {
-  type: "transfer";
-  from: string; // Address
-  to: string; // Address
-  value: string; // BigNumber hex
-};
 
 export default function setupTalentsController(router: Router) {
   router.get("/v1/talents", async (ctx, next) => {
@@ -70,44 +16,43 @@ export default function setupTalentsController(router: Router) {
       : undefined;
 
     if (from) {
+      // Get all talents claimed by a specific address.
+      //
+
       ctx.body = db
         .prepare(
-          `SELECT id, codec
-          FROM talent_mint
-          WHERE author = ?
+          `SELECT content_id, content_codec, multihash_codec
+          FROM iipnft_claim
+          WHERE contract_address = ? AND content_author = ?
           ORDER BY block_number DESC`
         )
-        .all(from.toString())
-        .map(
-          (row): ShortTalentDTO => ({
-            cid: CID.createV1(
-              row.codec,
-              digest.create(
-                keccak256.code,
-                Buffer.from(row["id"].slice(2), "hex")
-              )
-            ).toString(),
-          })
-        );
+        .all(config.eth.talentAddress.bytes, from.bytes)
+        .filter((row: any) => row.content_id)
+        .map((row) => ({
+          cid: CID.createV1(
+            row.content_codec,
+            digest.create(row.multihash_codec, new Bytes(row.content_id).bytes)
+          ).toString(),
+        }));
     } else {
+      // Get all claimed talents.
+      //
+
       ctx.body = db
         .prepare(
-          `SELECT id, codec
-          FROM talent_mint
+          `SELECT content_id, content_codec, multihash_codec
+          FROM iipnft_claim
+          WHERE contract_address = ?
           ORDER BY block_number DESC`
         )
-        .all()
-        .map(
-          (row): ShortTalentDTO => ({
-            cid: CID.createV1(
-              row.codec,
-              digest.create(
-                keccak256.code,
-                Buffer.from(row["id"].slice(2), "hex")
-              )
-            ).toString(),
-          })
-        );
+        .all(config.eth.talentAddress.bytes)
+        .filter((row: any) => row.content_id)
+        .map((row) => ({
+          cid: CID.createV1(
+            row.content_codec,
+            digest.create(row.multihash_codec, new Bytes(row.content_id).bytes)
+          ).toString(),
+        }));
     }
 
     next();
@@ -123,45 +68,84 @@ export default function setupTalentsController(router: Router) {
       return;
     }
 
-    const id = "0x" + Buffer.from(cid.multihash.digest).toString("hex");
+    const id = new Bytes(cid.multihash.digest);
 
     const blockNumber = (
       await db
-        .prepare(`SELECT block_number FROM talent_mint WHERE id = ?`)
-        .get(id)
+        .prepare(
+          `SELECT block_number
+          FROM ipft1155redeemable_mint
+          WHERE id = ?`
+        )
+        .get(id.bytes)
     )?.block_number;
 
     if (!blockNumber) ctx.throw(404, "Talent not found");
 
-    const provider = await getProvider();
-    const talentContract = IpftRedeemableFactory.connect(
-      config.eth.talentAddress.toString(),
-      provider
-    );
+    // Get finalized and expiredAt from the latest Mint event.
+    const {
+      finalize: finalized,
+      expires_at: expiredAt,
+    }: {
+      finalize: boolean;
+      expires_at: number;
+    } = db
+      .prepare(
+        `SELECT finalize, expires_at
+        FROM ipft1155redeemable_mint
+        WHERE contract_address = ? AND id = ?
+        ORDER BY block_number DESC
+        LIMIT 1`
+      )
+      .get(config.eth.talentAddress.bytes, id.bytes);
 
-    const [createdAt, author, finalized, expiredAt, royaltyInfo, editions] =
-      await Promise.all([
-        (await provider.getBlock(blockNumber)).timestamp,
-        new Address(await talentContract.authorOf(id)),
-        await talentContract.isFinalized(id),
-        (await talentContract.expiredAt(id)).toNumber(),
-        await talentContract.royaltyInfo(id, ethers.utils.parseEther("1")),
-        await talentContract.totalSupply(id),
-      ]);
+    const {
+      block_number: claimedEventBlockNumber,
+      log_index: claimedEventLogIndex,
+      tx_hash: claimedEventTxHash,
+      content_author: author,
+    }: {
+      block_number: number;
+      log_index: number;
+      tx_hash: string;
+      content_author: string;
+    } = db
+      .prepare(
+        `SELECT block_number, log_index, tx_hash, content_author
+        FROM iipnft_claim
+        WHERE contract_address = ? AND content_id = ?`
+      )
+      .get(config.eth.talentAddress.bytes, id.bytes);
 
-    ctx.set("Cache-Control", "public, max-age=60");
+    // TODO: Off-chain editions (Transfer events).
+    const [editions, royalty] = await Promise.all([
+      await talentContract.totalSupply(id.toString()),
+      (
+        await talentContract.royaltyInfo(
+          id.toString(),
+          ethers.utils.parseEther("1")
+        )
+      ).royaltyAmount
+        .div(utils.parseEther("1"))
+        .toNumber(),
+    ]);
 
-    const dto: TalentDTO = {
+    // Set cache to 30 seconds (approx. 2 blocks).
+    ctx.set("Cache-Control", "public, max-age=30");
+
+    ctx.body = {
       cid: cid.toString(),
-      createdAt,
-      author: author.toString(),
-      royalty: royaltyInfo.royaltyAmount.div(utils.parseEther("1")).toNumber(),
+      author: new Address(author).toString(),
+      claimEvent: {
+        blockNumber: claimedEventBlockNumber,
+        logIndex: claimedEventLogIndex,
+        txHash: new Hash(claimedEventTxHash).toString(),
+      },
+      royalty, // 0-1
       finalized,
       expiredAt,
-      editions: editions.toNumber(),
+      editions: editions._hex,
     };
-
-    ctx.body = dto;
 
     next();
   });
@@ -176,200 +160,158 @@ export default function setupTalentsController(router: Router) {
       return;
     }
 
-    const id = "0x" + Buffer.from(cid.multihash.digest).toString("hex");
+    const id = new Bytes(cid.multihash.digest);
 
-    const provider = await getProvider();
-    const talentContract = IpftRedeemableFactory.connect(
-      config.eth.talentAddress.toString(),
-      provider
-    );
+    // Mint events, that is transfers from zero.
+    const mints = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          tx_hash,
+          operator,
+          "to",
+          value
+        FROM ierc1155_transfer
+        WHERE contract_address = ? AND "from" = ? AND id = ?`
+      )
+      .all(config.eth.talentAddress.bytes, Address.zero.bytes, id.bytes)
+      .filter((row: any) => row.block_number)
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_mint",
+        operator: new Address(row.operator).toString(),
+        to: new Address(row.to).toString(),
+        value: BigNumber.from(row.value)._hex,
+      }));
 
-    // Mint
-    const mints: Promise<EventMintDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT
-            talent_mint.block_number,
-            talent_mint.log_index,
-            talent_mint.tx_hash,
-            author,
-            "value"
-          FROM talent_mint
-          JOIN talent_transfer
-            ON talent_transfer.tx_hash = talent_mint.tx_hash
-          WHERE talent_mint.id = ?`
-        )
-        .all(id)
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<EventMintDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "mint",
-            author: row.author,
-            amount: row.value,
-          })
-        )
-    );
+    console.debug(mints);
 
-    // List
-    const lists: Promise<EventListDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT
-            list.listing_id,
-            list.block_number,
-            list.log_index,
-            list.tx_hash,
-            list.seller,
-            replenish.new_price,
-            replenish.token_amount
-          FROM openstore_list AS list
-          JOIN openstore_replenish AS replenish
-            ON
-              replenish.listing_id = list.listing_id AND
-              replenish.tx_hash = list.tx_hash
-          WHERE
-            list.app_address = ? AND
-            list.token_contract = ? AND
-            list.token_id = ?`
-        )
-        .all(config.eth.appAddress.toString(), talentContract.address, id)
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<EventListDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "list",
-            listingId: row.listing_id,
-            seller: row.seller,
-            amount: row.token_amount,
-            price: row.new_price,
-          })
-        )
-    );
+    // List events.
+    const lists = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          tx_hash,
+          listing_id,
+          seller,
+          price,
+          stock_size
+        FROM nftfair_list
+        WHERE
+          contract_address = ? AND
+          app = ? AND
+          token_contract = ? AND
+          token_id = ?`
+      )
+      .all(
+        config.eth.nftFairAddress.bytes,
+        config.eth.appAddress.bytes,
+        talentContract.address,
+        id.bytes
+      )
+      .filter((row: any) => row.block_number)
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_list",
+        listingId: new Bytes<32>(row.listing_id).toString(),
+        seller: new Address(row.seller).toString(),
+        price: BigNumber.from(row.price)._hex,
+        stockSize: BigNumber.from(row.stock_size)._hex,
+      }));
 
-    // Purchase
-    const purchases: Promise<EventPurchaseDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT
-            purchase.listing_id,
-            purchase.block_number,
-            purchase.log_index,
-            purchase.tx_hash,
-            purchase.buyer,
-            purchase.token_amount,
-            purchase.income
-          FROM openstore_purchase AS purchase
-          RIGHT JOIN openstore_list AS list
-            ON purchase.listing_id = list.listing_id
-          WHERE
-            list.app_address = ? AND
-            list.token_contract = ? AND
-            list.token_id = ?`
-        )
-        .all(config.eth.appAddress.toString(), talentContract.address, id)
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<EventPurchaseDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "purchase",
-            listingId: row.listing_id,
-            buyer: row.buyer,
-            tokenAmount: row.token_amount,
-            income: row.income,
-          })
-        )
-    );
+    // Purchase events.
+    const purchases = db
+      .prepare(
+        `SELECT
+          nftfair_purchase.block_number,
+          nftfair_purchase.log_index,
+          nftfair_purchase.tx_hash,
+          nftfair_purchase.listing_id,
+          nftfair_purchase.buyer,
+          nftfair_purchase.token_amount,
+          nftfair_purchase.income
+        FROM nftfair_purchase
+        RIGHT JOIN nftfair_list
+          ON nftfair_purchase.listing_id = nftfair_list.listing_id
+        WHERE
+          nftfair_list.contract_address = ? AND
+          nftfair_list.app = ? AND
+          nftfair_list.token_contract = ? AND
+          nftfair_list.token_id = ?`
+      )
+      .all(
+        config.eth.nftFairAddress.bytes,
+        config.eth.appAddress.bytes,
+        config.eth.talentAddress.bytes,
+        id.bytes
+      )
+      .filter((row: any) => row.block_number)
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_purchase",
+        listingId: new Bytes<32>(row.listing_id).toString(),
+        buyer: new Address(row.buyer).toString(),
+        tokenAmount: BigNumber.from(row.token_amount)._hex,
+        income: BigNumber.from(row.income)._hex,
+      }));
 
-    // Transfer
-    const transfers: Promise<EventTransferDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT *
-          FROM talent_transfer
-          WHERE id = ? AND "to" != ? AND "from" != ?`
-        )
-        .all(id, ethers.constants.AddressZero, ethers.constants.AddressZero)
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<EventTransferDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "transfer",
-            from: row.from,
-            to: row.to,
-            value: row.value,
-          })
-        )
-    );
+    console.debug(purchases);
 
-    const events = (
-      await Promise.all([mints, lists, purchases, transfers])
-    ).flat();
+    // Transfers.
+    const transfers = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          tx_hash,
+          "from",
+          "to",
+          value
+        FROM ierc1155_transfer
+        WHERE
+          contract_address = ? AND
+          id = ? AND
+          "to" != ? AND
+          "to" != ? AND
+          "from" != ? AND
+          "from" != ?`
+      )
+      .all(
+        config.eth.talentAddress.bytes,
+        id.bytes,
+        Address.zero.bytes,
+        config.eth.nftFairAddress.bytes,
+        Address.zero.bytes,
+        config.eth.nftFairAddress.bytes
+      )
+      .filter((row: any) => row.block_number)
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_transfer",
+        from: new Address(row.from).toString(),
+        to: new Address(row.to).toString(),
+        value: BigNumber.from(row.value)._hex,
+      }));
 
-    ctx.set("Cache-Control", "public, max-age=60");
+    const events = [mints, lists, purchases, transfers].flat();
+
+    // Cache for 30 seconds (approx. 2 blocks).
+    ctx.set("Cache-Control", "public, max-age=30");
+
     ctx.body = events.sort((a, b) =>
-      b.timestamp === a.timestamp
+      b.blockNumber === a.blockNumber
         ? b.logIndex - a.logIndex
-        : b.timestamp - a.timestamp
+        : b.blockNumber - a.blockNumber
     );
-  });
-
-  // TODO:
-  router.get("/v1/talents/:cid/fromListingPrice", async (ctx, next) => {
-    let cid: CID;
-
-    try {
-      cid = CID.parse(ctx.params.cid);
-    } catch (e) {
-      ctx.throw(400, "Invalid CID");
-      return;
-    }
-
-    const id = "0x" + Buffer.from(cid.multihash.digest).toString("hex");
-
-    const provider = await getProvider();
-    const talentContract = IpftRedeemableFactory.connect(
-      config.eth.talentAddress.toString(),
-      provider
-    );
-
-    const price = (
-      await db
-        .prepare(
-          `SELECT *
-          FROM openstore_list AS list
-          JOIN openstore_replenish AS replenish ON
-            replenish.rowid = (
-              SELECT r1.rowid FROM replenish AS r1
-              WHERE r1.listing_id = list.listing_id
-              ORDER BY r1.block_number DESC
-              LIMIT 1
-            )
-          WHERE
-            app_address = ? AND
-            token_contract = ? AND
-            token_id = ?
-          ORDER BY block_number DESC
-          LIMIT 1`
-        )
-        .get(talentContract.address, id)
-    )?.price;
-
-    if (!price) ctx.throw(404, "Talent not found");
-
-    ctx.set("Cache-Control", "public, max-age=60");
-    ctx.body = price;
   });
 }

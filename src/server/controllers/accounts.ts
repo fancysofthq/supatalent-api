@@ -1,12 +1,10 @@
 import db from "@/services/db.js";
 import Router from "@koa/router";
 import { CID } from "multiformats/cid";
-import { getProvider } from "@/services/eth.js";
-import Address from "@/models/Address.js";
-import { ethers } from "ethers";
+import { talentContract } from "@/services/eth.js";
+import { Address, Bytes, Hash } from "@/models/Bytes.js";
 import config from "@/config.js";
-import * as Talents from "./talents.js";
-import { IpftRedeemableFactory } from "@/../contracts/IpftRedeemableFactory.js";
+import { BigNumber } from "ethers";
 
 export default function setupAccountsController(router: Router) {
   router.get("/v1/accounts/:address/talentBalance/:cid", async (ctx, next) => {
@@ -23,13 +21,10 @@ export default function setupAccountsController(router: Router) {
       return;
     }
 
-    const provider = await getProvider();
+    // Set cache to 30 seconds (approx. two blocks).
+    ctx.set("Cache-Control", "max-age=30");
 
-    const talentContract = IpftRedeemableFactory.connect(
-      config.eth.talentAddress.toString(),
-      provider
-    );
-
+    // TODO: Query transfer events instead.
     ctx.body = (
       await talentContract.balanceOf(address.toString(), cid.multihash.digest)
     )._hex;
@@ -40,113 +35,121 @@ export default function setupAccountsController(router: Router) {
       ctx.throw(400, "Invalid address");
     const address = new Address(ctx.params.address);
 
-    const provider = await getProvider();
+    // Select all listings created by this address.
+    // Full listing information is not included in the response.
+    const lists = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          tx_hash,
+          listing_id,
+          seller,
+          price,
+          stock_size
+        FROM nftfair_list
+        WHERE contract_address = ? AND app = ? AND seller = ?`
+      )
+      .all(
+        config.eth.nftFairAddress.bytes,
+        config.eth.appAddress.bytes,
+        address.bytes
+      )
+      .filter((row: any) => row.block_number) // Remove empty rows.
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_list",
+        listingId: new Bytes<32>(row.listing_id).toString(),
+        seller: new Address(row.seller).toString(),
+        price: BigNumber.from(row.price)._hex,
+        stockSize: BigNumber.from(row.stock_size)._hex,
+      }));
 
-    // List
-    const lists: Promise<Talents.EventListDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT
-            list.listing_id,
-            list.block_number,
-            list.log_index,
-            list.tx_hash,
-            list.seller,
-            replenish.new_price,
-            replenish.token_amount
-          FROM openstore_list AS list
-          JOIN openstore_replenish AS replenish
-            ON
-              replenish.listing_id = list.listing_id AND
-              replenish.tx_hash = list.tx_hash
-          WHERE
-            list.app_address = ? AND
-            list.seller = ?`
-        )
-        .all(config.eth.appAddress.toString(), address.toString())
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<Talents.EventListDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "list",
-            listingId: row.listing_id,
-            seller: row.seller,
-            amount: row.token_amount,
-            price: row.new_price,
-          })
-        )
-    );
+    // Select all purchases made by this address.
+    const purchases = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          tx_hash,
+          listing_id,
+          token_amount,
+          income
+        FROM nftfair_purchase
+        WHERE contract_address = ? AND app = ? AND buyer = ?`
+      )
+      .all(
+        config.eth.nftFairAddress.bytes,
+        config.eth.appAddress.bytes,
+        address.bytes
+      )
+      .filter((row: any) => row.block_number) // Remove empty rows.
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_purchase",
+        listingId: new Bytes<32>(row.listing_id).toString(),
+        tokenAmount: BigNumber.from(row.token_amount)._hex,
+        income: BigNumber.from(row.income)._hex,
+      }));
 
-    // Purchase
-    const purchases: Promise<Talents.EventPurchaseDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT
-            purchase.listing_id,
-            purchase.block_number,
-            purchase.log_index,
-            purchase.tx_hash,
-            purchase.buyer,
-            purchase.token_amount,
-            purchase.income
-          FROM openstore_purchase AS purchase
-          RIGHT JOIN openstore_list AS list
-            ON purchase.listing_id = list.listing_id
-          WHERE
-            list.app_address = ? AND
-            purchase.buyer = ?`
-        )
-        .all(config.eth.appAddress.toString(), address.toString())
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<Talents.EventPurchaseDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "purchase",
-            listingId: row.listing_id,
-            buyer: row.buyer,
-            tokenAmount: row.token_amount,
-            income: row.income,
-          })
-        )
-    );
+    // Transfers to or from (excluding minting and burning).
+    const transfers = db
+      .prepare(
+        `SELECT
+          block_number,
+          log_index,
+          sub_index,
+          tx_hash,
+          "from",
+          "to",
+          id,
+          value
+        FROM ierc1155_transfer
+        WHERE
+          contract_address = ? AND
+          "from" != ? AND
+          "from" != ? AND
+          "to" != ? AND
+          "to" != ? AND
+          "to" != ? AND
+          ("from" == ? OR "to" == ?)`
+      )
+      .all(
+        config.eth.talentAddress.bytes,
+        Address.zero.bytes,
+        config.eth.nftFairAddress.bytes,
+        Address.zero.bytes,
+        config.eth.nftFairAddress.bytes,
+        config.eth.talentAddress.bytes,
+        address.bytes,
+        address.bytes
+      )
+      .filter((row: any) => row.block_number) // Remove empty rows.
+      .map((row: any) => ({
+        blockNumber: row.block_number,
+        logIndex: row.log_index,
+        subIndex: row.sub_index,
+        txHash: new Hash(row.tx_hash).toString(),
+        type: "talent_transfer",
+        from: new Address(row.from).toString(),
+        to: new Address(row.to).toString(),
+        id: BigNumber.from(row.id)._hex,
+        value: BigNumber.from(row.value)._hex,
+      }));
 
-    // Transfer
-    const transfers: Promise<Talents.EventTransferDTO[]> = Promise.all(
-      db
-        .prepare(
-          `SELECT *
-          FROM talent_transfer
-          WHERE "to" != ? AND "from" == ?`
-        )
-        .all(ethers.constants.AddressZero, address.toString())
-        .filter((row: any) => row.block_number)
-        .map(
-          async (row: any): Promise<Talents.EventTransferDTO> => ({
-            blockNumber: row.block_number,
-            logIndex: row.log_index,
-            timestamp: (await provider.getBlock(row.block_number)).timestamp,
-            txHash: row.tx_hash,
-            type: "transfer",
-            from: row.from,
-            to: row.to,
-            value: row.value,
-          })
-        )
-    );
+    const events = [lists, purchases, transfers].flat();
 
-    const events = (await Promise.all([lists, purchases, transfers])).flat();
+    // Set cache to 30 seconds (approx. 2 blocks).
+    ctx.set("Cache-Control", "public, max-age=30");
 
-    ctx.set("Cache-Control", "public, max-age=60");
     ctx.body = events.sort((a, b) =>
-      b.timestamp === a.timestamp
+      b.blockNumber === a.blockNumber
         ? b.logIndex - a.logIndex
-        : b.timestamp - a.timestamp
+        : b.blockNumber - a.blockNumber
     );
   });
 }

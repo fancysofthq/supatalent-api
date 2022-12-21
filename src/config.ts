@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import Address from "@/models/Address.js";
+import { Address, Hash } from "@/models/Bytes";
 dotenv.config();
 
 class DB {
@@ -15,9 +15,9 @@ class Eth {
     readonly rpcUrl: string,
     readonly appAddress: Address,
     readonly talentAddress: Address,
-    readonly talentTx: string,
-    readonly openStoreAddress: Address,
-    readonly openStoreTx: string
+    readonly talentTx: Hash,
+    readonly nftFairAddress: Address,
+    readonly nftFairTx: Hash
   ) {}
 }
 
@@ -45,9 +45,9 @@ const config = new Config(
     requireEnv("ETH_RPC_URL"),
     new Address(requireEnv("ETH_APP_ADDRESS")),
     new Address(requireEnv("ETH_TALENT_ADDRESS")),
-    requireEnv("ETH_TALENT_TX"),
-    new Address(requireEnv("ETH_OPEN_STORE_ADDRESS")),
-    requireEnv("ETH_OPEN_STORE_TX")
+    new Hash(requireEnv("ETH_TALENT_TX")),
+    new Address(requireEnv("ETH_NFTFAIR_ADDRESS")),
+    new Hash(requireEnv("ETH_NFTFAIR_TX"))
   )
 );
 

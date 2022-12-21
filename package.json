@@ -18,15 +18,17 @@
     "npm": "^8.0"
   },
   "scripts": {
+    "clean": "rm -r dist",
     "build": "tsc && resolve-tspaths --src .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon",
-    "start": "node dist/src/index.js",
+    "start": "node --experimental-specifier-resolution=node dist/src/index.js",
     "db:migrate": "node dist/scripts/db/migrate.js"
   },
   "dependencies": {
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
+    "@fancysofthq/contracts": "^0.1.0-rc1",
     "@koa/cors": "^3.3.0",
     "@koa/router": "^10.1.1",
     "@multiformats/sha3": "^2.0.14",

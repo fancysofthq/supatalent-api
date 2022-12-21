@@ -1,28 +1,32 @@
-import { open } from "@/services/db.js";
+import db from "@/services/db";
 import fs from "fs";
 import path from "path";
 
-const MIGRATION_TABLE = "_migrations";
-
-export async function migrate(to?: number, dir: string = "./db/migrations") {
-  const db = open(true);
+export function migrate(
+  dir: string = "./db/migrations",
+  to?: number,
+  migrationTable = "_migrations"
+) {
   let from: number;
 
-  db.exec(`CREATE TABLE IF NOT EXISTS ${MIGRATION_TABLE} (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+  db.exec(
+    `CREATE TABLE IF NOT EXISTS ${migrationTable} (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`
+  );
 
   from =
-    (db
+    db
       .prepare(
         `SELECT id
-      FROM ${MIGRATION_TABLE}
-      ORDER BY id DESC
-      LIMIT 1`
+        FROM ${migrationTable}
+        ORDER BY id DESC
+        LIMIT 1`
       )
       .pluck()
-      .get() as number) || 0;
+      .get() || 0;
 
   const dirPath = path.join(process.cwd(), dir);
   const fileNames = fs.readdirSync(dirPath);
@@ -40,24 +44,27 @@ export async function migrate(to?: number, dir: string = "./db/migrations") {
   }
 
   const updateMigrationStmt = db.prepare(
-    `INSERT INTO ${MIGRATION_TABLE} (name) VALUES (?)`
+    `INSERT INTO ${migrationTable} (name) VALUES (?)`
   );
 
-  let i = 0;
   for (const fileName of fileNames.slice(from, to)) {
-    console.log(`Running migration ${from + i} -> ${from + 1 + i}...`);
+    console.log(`Running migration ${fileName}...`);
     const sql = fs.readFileSync(`${dir}/${fileName}`, "utf8");
 
     db.transaction(() => {
       db.exec(sql);
       updateMigrationStmt.run(fileName);
     })();
-
-    i++;
   }
 
   console.log(`Successfully run ${to - from} migrations`);
-  process.exit(0);
 }
 
-migrate();
+try {
+  migrate();
+  console.log("Migrations complete");
+  process.exit(0);
+} catch (e) {
+  console.error(e);
+  process.exit(1);
+}
