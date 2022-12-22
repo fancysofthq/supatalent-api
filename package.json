@@ -29,6 +29,7 @@
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@fancysoft/contracts": "^0.1.0",
+    "@fancysofthq/supabase": "^0.4.0",
     "@koa/cors": "^3.3.0",
     "@koa/router": "^10.1.1",
     "@multiformats/sha3": "^2.0.14",
@@ -59,6 +60,17 @@
     "typescript": "^4.9.3"
   },
   "files": [
-    "dist/src"
-  ]
+    "dist/src/server/index.js",
+    "dist/src/server/index.d.ts"
+  ],
+  "exports": {
+    "./server": "./dist/src/server/types.js"
+  },
+  "typesVersions": {
+    "*": {
+      "server": [
+        "dist/src/server/types.d.ts"
+      ]
+    }
+  }
 }

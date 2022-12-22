@@ -2,7 +2,7 @@ import jsonwebtoken from "jsonwebtoken";
 import Router from "@koa/router";
 import config from "@/config.js";
 import koa from "koa";
-import { Address } from "@/models/Bytes.js";
+import { Address } from "@fancysofthq/supabase";
 
 // TODO: Replace with a home-grown solution.
 import Web3Token from "web3-token";

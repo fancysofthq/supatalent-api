@@ -2,7 +2,7 @@ import { NFTFair__factory } from "@fancysoft/contracts/typechain";
 import { PurchaseEvent } from "@fancysoft/contracts/typechain/contracts/NFTFair";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
-import { Address, Bytes, Hash } from "@/models/Bytes";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { sync, Job } from "@/shared/sync";
 import { Config } from "../Config";
 
@@ -71,20 +71,20 @@ export class NFTFairPurchaseJob implements Job {
           stmt.run(
             event.blockNumber,
             event.logIndex,
-            new Hash(event.transactionHash).bytes,
-            new Address(event.address).bytes,
+            Hash.from(event.transactionHash).bytes,
+            Address.from(event.address).bytes,
 
-            new Address(event.args.operator).bytes,
-            new Address(event.args.app).bytes,
-            new Bytes(event.args.listingId).bytes,
-            new Address(event.args.buyer).bytes,
-            new Bytes(event.args.tokenAmount._hex).bytes,
-            new Address(event.args.sendTo).bytes,
-            new Bytes(event.args.income._hex).bytes,
-            new Address(event.args.royaltyAddress).bytes,
-            new Bytes(event.args.royaltyValue._hex).bytes,
-            new Bytes(event.args.appFee._hex).bytes,
-            new Bytes(event.args.sellerProfit._hex).bytes
+            Address.from(event.args.operator).bytes,
+            Address.from(event.args.app).bytes,
+            Bytes.from(event.args.listingId).bytes,
+            Address.from(event.args.buyer).bytes,
+            Bytes.from(event.args.tokenAmount._hex).bytes,
+            Address.from(event.args.sendTo).bytes,
+            Bytes.from(event.args.income._hex).bytes,
+            Address.from(event.args.royaltyAddress).bytes,
+            Bytes.from(event.args.royaltyValue._hex).bytes,
+            Bytes.from(event.args.appFee._hex).bytes,
+            Bytes.from(event.args.sellerProfit._hex).bytes
           );
         }
       },

@@ -2,7 +2,7 @@ import { IPNFT1155Redeemable__factory } from "@fancysoft/contracts/typechain";
 import { MintEvent } from "@fancysoft/contracts/typechain/contracts/IPNFT1155Redeemable";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
-import { Address, Bytes, Hash } from "@/models/Bytes";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { sync, Job } from "@/shared/sync";
 import { Config } from "../Config";
 
@@ -52,10 +52,10 @@ export class IPNFT1155RedeemableMintJob implements Job {
           stmt.run(
             event.blockNumber,
             event.logIndex,
-            new Hash(event.transactionHash).bytes,
-            new Address(event.address).bytes,
+            Hash.from(event.transactionHash).bytes,
+            Address.from(event.address).bytes,
 
-            new Bytes(event.args.id._hex).bytes,
+            Bytes.from(event.args.id._hex).bytes,
             event.args.finalize ? 1 : 0,
             event.args.expiresAt.toNumber()
           );

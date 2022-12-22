@@ -9,7 +9,7 @@
     "lib": ["ESNext"],
     "strictFunctionTypes": false,
     "skipLibCheck": true,
-    "declaration": false,
+    "declaration": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

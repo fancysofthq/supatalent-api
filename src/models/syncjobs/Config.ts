@@ -1,4 +1,4 @@
-import { Address, Hash } from "../Bytes";
+import { Address, Hash } from "@fancysofthq/supabase";
 
 export type Config = {
   contractAddress: Address;

@@ -3,7 +3,9 @@ import Router from "@koa/router";
 import { CID } from "multiformats/cid";
 import { nftFairContract } from "@/services/eth";
 import config from "@/config";
-import { Address, Bytes } from "@/models/Bytes";
+import { Address, Bytes } from "@fancysofthq/supabase";
+import { BigNumber } from "ethers";
+import { Listing, ListingId } from "../types";
 
 export default function setupListingsController(router: Router) {
   router.get("/v1/listings", async (ctx, next) => {
@@ -43,9 +45,7 @@ export default function setupListingsController(router: Router) {
           config.eth.talentAddress.bytes,
           talentCid.multihash.digest
         )
-        .map((row) => ({
-          id: new Bytes<32>(row.listing_id).toString(),
-        }));
+        .map((row) => new ListingId(Bytes.from<32>(row.listing_id)).toJSON());
     } else {
       ctx.throw(400, "Missing talentCid query parameter");
     }
@@ -57,7 +57,7 @@ export default function setupListingsController(router: Router) {
     // TODO: Make it off-chain.
     const listing = await nftFairContract.getListing(ctx.params.id);
 
-    if (new Address(listing.config.seller).zero) {
+    if (Address.from(listing.config.seller).zero) {
       ctx.throw(404, "Listing not found");
       return;
     }
@@ -65,16 +65,16 @@ export default function setupListingsController(router: Router) {
     // Set cache to 30 seconds (approx. 2 blocks).
     ctx.set("Cache-Control", "public, max-age=30");
 
-    ctx.body = {
-      id: ctx.params.id,
-      seller: listing.config.seller,
-      token: {
-        contract: listing.token.contractAddress,
-        id: listing.token.tokenId._hex,
+    ctx.body = new Listing(
+      Bytes.from<32>(ctx.params.id),
+      Address.from(listing.config.seller),
+      {
+        contract: Address.from(listing.token.contractAddress),
+        id: BigNumber.from(listing.token.tokenId),
       },
-      stockSize: listing.stockSize._hex,
-      price: listing.config.price._hex,
-    };
+      BigNumber.from(listing.stockSize),
+      BigNumber.from(listing.config.price)
+    ).toJSON();
 
     next();
   });

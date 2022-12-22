@@ -1,7 +1,7 @@
 import { Database } from "better-sqlite3";
 import { ethers } from "ethers";
 import pRetry from "p-retry";
-import { Hash } from "@/models/Bytes";
+import { Hash } from "@fancysofthq/supabase";
 import { timer } from "@/utils";
 import {
   TypedEvent,

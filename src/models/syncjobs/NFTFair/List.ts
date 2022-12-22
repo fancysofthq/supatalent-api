@@ -2,7 +2,7 @@ import { NFTFair__factory } from "@fancysoft/contracts/typechain";
 import { ListEvent } from "@fancysoft/contracts/typechain/contracts/NFTFair";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
-import { Address, Bytes, Hash } from "@/models/Bytes";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { sync, Job } from "@/shared/sync";
 import { Config } from "../Config";
 
@@ -65,17 +65,17 @@ export class NFTFairListJob implements Job {
           stmt.run(
             event.blockNumber,
             event.logIndex,
-            new Hash(event.transactionHash).bytes,
-            new Address(event.address).bytes,
+            Hash.from(event.transactionHash).bytes,
+            Address.from(event.address).bytes,
 
-            new Address(event.args.operator).bytes,
-            new Address(event.args.app).bytes,
-            new Bytes(event.args.listingId).bytes,
-            new Address(event.args.token.contractAddress).bytes,
-            new Bytes(event.args.token.tokenId._hex).bytes,
-            new Address(event.args.seller).bytes,
-            new Bytes(event.args.price._hex).bytes,
-            new Bytes(event.args.stockSize._hex).bytes
+            Address.from(event.args.operator).bytes,
+            Address.from(event.args.app).bytes,
+            Bytes.from(event.args.listingId).bytes,
+            Address.from(event.args.token.contractAddress).bytes,
+            Bytes.from(event.args.token.tokenId._hex).bytes,
+            Address.from(event.args.seller).bytes,
+            Bytes.from(event.args.price._hex).bytes,
+            Bytes.from(event.args.stockSize._hex).bytes
           );
         }
       },

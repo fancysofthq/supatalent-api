@@ -2,17 +2,25 @@ import db from "@/services/db.js";
 import Router from "@koa/router";
 import { CID } from "multiformats/cid";
 import { digest } from "multiformats";
-import { talentContract, nftFairContract } from "@/services/eth.js";
-import { Address, Bytes, Hash } from "@/models/Bytes.js";
+import { talentContract } from "@/services/eth.js";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { BigNumber, ethers, utils } from "ethers";
 import config from "@/config.js";
+import {
+  Event,
+  ListEvent,
+  PurchaseEvent,
+  Talent,
+  TalentId,
+  TransferEvent,
+} from "../types";
 
 export default function setupTalentsController(router: Router) {
   router.get("/v1/talents", async (ctx, next) => {
     ctx.set("Cache-Control", "public, max-age=60");
 
     const from = ctx.query.from
-      ? new Address(ctx.query.from as string)
+      ? Address.from(ctx.query.from as string)
       : undefined;
 
     if (from) {
@@ -28,12 +36,17 @@ export default function setupTalentsController(router: Router) {
         )
         .all(config.eth.talentAddress.bytes, from.bytes)
         .filter((row: any) => row.content_id)
-        .map((row) => ({
-          cid: CID.createV1(
-            row.content_codec,
-            digest.create(row.multihash_codec, new Bytes(row.content_id).bytes)
-          ).toString(),
-        }));
+        .map((row) =>
+          new TalentId(
+            CID.createV1(
+              row.content_codec,
+              digest.create(
+                row.multihash_codec,
+                Bytes.from(row.content_id).bytes
+              )
+            )
+          ).toJSON()
+        );
     } else {
       // Get all claimed talents.
       //
@@ -47,12 +60,17 @@ export default function setupTalentsController(router: Router) {
         )
         .all(config.eth.talentAddress.bytes)
         .filter((row: any) => row.content_id)
-        .map((row) => ({
-          cid: CID.createV1(
-            row.content_codec,
-            digest.create(row.multihash_codec, new Bytes(row.content_id).bytes)
-          ).toString(),
-        }));
+        .map((row) =>
+          new TalentId(
+            CID.createV1(
+              row.content_codec,
+              digest.create(
+                row.multihash_codec,
+                Bytes.from(row.content_id).bytes
+              )
+            )
+          ).toJSON()
+        );
     }
 
     next();
@@ -68,7 +86,7 @@ export default function setupTalentsController(router: Router) {
       return;
     }
 
-    const id = new Bytes(cid.multihash.digest);
+    const id = Bytes.from(cid.multihash.digest);
 
     const blockNumber = (
       await db
@@ -133,19 +151,19 @@ export default function setupTalentsController(router: Router) {
     // Set cache to 30 seconds (approx. 2 blocks).
     ctx.set("Cache-Control", "public, max-age=30");
 
-    ctx.body = {
-      cid: cid.toString(),
-      author: new Address(author).toString(),
-      claimEvent: {
+    ctx.body = new Talent(
+      cid,
+      Address.from(author),
+      {
         blockNumber: claimedEventBlockNumber,
         logIndex: claimedEventLogIndex,
-        txHash: new Hash(claimedEventTxHash).toString(),
+        txHash: Hash.from(claimedEventTxHash),
       },
       royalty, // 0-1
       finalized,
-      expiredAt,
-      editions: editions._hex,
-    };
+      new Date(expiredAt * 1000),
+      editions
+    ).toJSON();
 
     next();
   });
@@ -160,7 +178,7 @@ export default function setupTalentsController(router: Router) {
       return;
     }
 
-    const id = new Bytes(cid.multihash.digest);
+    const id = Bytes.from(cid.multihash.digest);
 
     // Mint events, that is transfers from zero.
     const mints = db
@@ -168,24 +186,31 @@ export default function setupTalentsController(router: Router) {
         `SELECT
           block_number,
           log_index,
+          sub_index,
           tx_hash,
           operator,
           "to",
+          id,
           value
         FROM ierc1155_transfer
         WHERE contract_address = ? AND "from" = ? AND id = ?`
       )
       .all(config.eth.talentAddress.bytes, Address.zero.bytes, id.bytes)
       .filter((row: any) => row.block_number)
-      .map((row: any) => ({
-        blockNumber: row.block_number,
-        logIndex: row.log_index,
-        txHash: new Hash(row.tx_hash).toString(),
-        type: "talent_mint",
-        operator: new Address(row.operator).toString(),
-        to: new Address(row.to).toString(),
-        value: BigNumber.from(row.value)._hex,
-      }));
+      .map(
+        (row: any) =>
+          new TransferEvent(
+            row.block_number,
+            row.log_index,
+            row.sub_index,
+            Hash.from(row.tx_hash),
+            Address.from(row.operator),
+            Address.zero,
+            Address.from(row.to),
+            BigNumber.from(row.id),
+            BigNumber.from(row.value)
+          )
+      );
 
     console.debug(mints);
 
@@ -214,16 +239,18 @@ export default function setupTalentsController(router: Router) {
         id.bytes
       )
       .filter((row: any) => row.block_number)
-      .map((row: any) => ({
-        blockNumber: row.block_number,
-        logIndex: row.log_index,
-        txHash: new Hash(row.tx_hash).toString(),
-        type: "talent_list",
-        listingId: new Bytes<32>(row.listing_id).toString(),
-        seller: new Address(row.seller).toString(),
-        price: BigNumber.from(row.price)._hex,
-        stockSize: BigNumber.from(row.stock_size)._hex,
-      }));
+      .map(
+        (row: any) =>
+          new ListEvent(
+            row.block_number,
+            row.log_index,
+            Hash.from(row.tx_hash),
+            Bytes.from<32>(row.listing_id),
+            Address.from(row.seller),
+            BigNumber.from(row.price),
+            BigNumber.from(row.stock_size)
+          )
+      );
 
     // Purchase events.
     const purchases = db
@@ -252,16 +279,18 @@ export default function setupTalentsController(router: Router) {
         id.bytes
       )
       .filter((row: any) => row.block_number)
-      .map((row: any) => ({
-        blockNumber: row.block_number,
-        logIndex: row.log_index,
-        txHash: new Hash(row.tx_hash).toString(),
-        type: "talent_purchase",
-        listingId: new Bytes<32>(row.listing_id).toString(),
-        buyer: new Address(row.buyer).toString(),
-        tokenAmount: BigNumber.from(row.token_amount)._hex,
-        income: BigNumber.from(row.income)._hex,
-      }));
+      .map(
+        (row: any) =>
+          new PurchaseEvent(
+            row.block_number,
+            row.log_index,
+            Hash.from(row.tx_hash),
+            Bytes.from<32>(row.listing_id),
+            Address.from(row.buyer),
+            BigNumber.from(row.token_amount),
+            BigNumber.from(row.income)
+          )
+      );
 
     console.debug(purchases);
 
@@ -271,9 +300,12 @@ export default function setupTalentsController(router: Router) {
         `SELECT
           block_number,
           log_index,
+          sub_index,
           tx_hash,
+          operator,
           "from",
           "to",
+          id,
           value
         FROM ierc1155_transfer
         WHERE
@@ -293,25 +325,32 @@ export default function setupTalentsController(router: Router) {
         config.eth.nftFairAddress.bytes
       )
       .filter((row: any) => row.block_number)
-      .map((row: any) => ({
-        blockNumber: row.block_number,
-        logIndex: row.log_index,
-        txHash: new Hash(row.tx_hash).toString(),
-        type: "talent_transfer",
-        from: new Address(row.from).toString(),
-        to: new Address(row.to).toString(),
-        value: BigNumber.from(row.value)._hex,
-      }));
+      .map(
+        (row: any) =>
+          new TransferEvent(
+            row.block_number,
+            row.log_index,
+            row.sub_index,
+            Hash.from(row.tx_hash),
+            Address.from(row.operator),
+            Address.from(row.from),
+            Address.from(row.to),
+            BigNumber.from(row.id),
+            BigNumber.from(row.value)
+          )
+      );
 
-    const events = [mints, lists, purchases, transfers].flat();
+    const events: Event[] = [mints, lists, purchases, transfers].flat();
 
     // Cache for 30 seconds (approx. 2 blocks).
     ctx.set("Cache-Control", "public, max-age=30");
 
-    ctx.body = events.sort((a, b) =>
-      b.blockNumber === a.blockNumber
-        ? b.logIndex - a.logIndex
-        : b.blockNumber - a.blockNumber
-    );
+    ctx.body = events
+      .sort((a, b) =>
+        b.blockNumber === a.blockNumber
+          ? b.logIndex - a.logIndex
+          : b.blockNumber - a.blockNumber
+      )
+      .map((event) => event.toJSON());
   });
 }

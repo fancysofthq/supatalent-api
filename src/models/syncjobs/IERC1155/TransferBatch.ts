@@ -2,7 +2,7 @@ import { IERC1155__factory } from "@fancysoft/contracts/typechain";
 import { TransferBatchEvent } from "@fancysoft/contracts/typechain/@openzeppelin/contracts/token/ERC1155/IERC1155";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
-import { Address, Bytes, Hash } from "@/models/Bytes";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { sync, Job } from "@/shared/sync";
 import { Config } from "../Config";
 
@@ -53,14 +53,14 @@ export class IERC1155TransferBatchJob implements Job {
               event.blockNumber,
               event.logIndex,
               i,
-              new Hash(event.transactionHash).bytes,
-              new Address(event.address).bytes,
+              Hash.from(event.transactionHash).bytes,
+              Address.from(event.address).bytes,
 
-              new Address(event.args.operator).bytes,
-              new Address(event.args.from).bytes,
-              new Address(event.args.to).bytes,
-              new Bytes(event.args.ids[i]._hex).bytes,
-              new Bytes(event.args.values[i]._hex).bytes
+              Address.from(event.args.operator).bytes,
+              Address.from(event.args.from).bytes,
+              Address.from(event.args.to).bytes,
+              Bytes.from(event.args.ids[i]._hex).bytes,
+              Bytes.from(event.args.values[i]._hex).bytes
             );
           });
         }

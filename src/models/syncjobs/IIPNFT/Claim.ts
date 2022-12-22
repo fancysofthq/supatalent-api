@@ -2,7 +2,7 @@ import { IIPNFT__factory } from "@fancysoft/contracts/typechain";
 import { ClaimEvent } from "@fancysoft/contracts/typechain/@nxsf/ipnft/contracts/IIPNFT";
 import db from "@/services/db";
 import { provider } from "@/services/eth";
-import { Address, Bytes, Hash } from "@/models/Bytes";
+import { Address, Bytes, Hash } from "@fancysofthq/supabase";
 import { sync, Job } from "@/shared/sync";
 import { Config } from "../Config";
 
@@ -57,11 +57,11 @@ export class IIPNFTClaimJob implements Job {
           stmt.run(
             event.blockNumber,
             event.logIndex,
-            new Hash(event.transactionHash).bytes,
-            new Address(event.address).bytes,
+            Hash.from(event.transactionHash).bytes,
+            Address.from(event.address).bytes,
 
-            new Bytes(event.args.contentId).bytes,
-            new Address(event.args.contentAuthor).bytes,
+            Bytes.from(event.args.contentId).bytes,
+            Address.from(event.args.contentAuthor).bytes,
             event.args.contentCodec,
             event.args.multihashCodec
           );
