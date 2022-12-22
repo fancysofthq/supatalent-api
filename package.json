@@ -60,8 +60,8 @@
     "typescript": "^4.9.3"
   },
   "files": [
-    "dist/src/server/index.js",
-    "dist/src/server/index.d.ts"
+    "dist/src/server/types.js",
+    "dist/src/server/types.d.ts"
   ],
   "exports": {
     "./server": "./dist/src/server/types.js"
