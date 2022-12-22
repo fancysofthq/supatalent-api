@@ -1,6 +1,6 @@
 import config from "../config.js";
 import { ethers } from "ethers";
-import { timeout } from "@/utils.js";
+import { timeout } from "@fancysofthq/supabase/utils/aux";
 import pRetry from "p-retry";
 import {
   IPNFT1155Redeemable__factory,

@@ -4,7 +4,7 @@ specifiers:
   '@ethersproject/contracts': ^5.7.0
   '@ethersproject/providers': ^5.7.2
   '@fancysoft/contracts': ^0.1.0
-  '@fancysofthq/supabase': ^0.4.0
+  '@fancysofthq/supabase': 0.4.1-rc1
   '@koa/cors': ^3.3.0
   '@koa/router': ^10.1.1
   '@multiformats/sha3': ^2.0.14
@@ -36,7 +36,7 @@ dependencies:
   '@ethersproject/contracts': 5.7.0
   '@ethersproject/providers': 5.7.2
   '@fancysoft/contracts': 0.1.0
-  '@fancysofthq/supabase': 0.4.0
+  '@fancysofthq/supabase': 0.4.1-rc1
   '@koa/cors': 3.4.3
   '@koa/router': 10.1.1
   '@multiformats/sha3': 2.0.14
@@ -399,8 +399,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@fancysofthq/supabase/0.4.0:
-    resolution: {integrity: sha512-vYkVzKSA11JFEQXxFKhusYmx10kfaMsYShMGhvu/9wRc+VH+peqfKKORd9Klpj3d48vIBzWfqeLmrqzYy3wDwQ==, tarball: download/@fancysofthq/supabase/0.4.0/2315e3ff6ebef65239370ea62b34358b35149eac}
+  /@fancysofthq/supabase/0.4.1-rc1:
+    resolution: {integrity: sha512-TB4e8MZqmxpqpm8+YRkRbFp0drYoi0N+7D8ymFTXlAuSM94tQLigyOApCWmdfMd18aE1ebYjDoWQqPnkqFfftA==, tarball: download/@fancysofthq/supabase/0.4.1-rc1/a7f675949323470a256812813bb83d488cd6ef7d}
     engines: {node: ^18.0, npm: ^8.0}
     dev: false
 

@@ -2,7 +2,7 @@ import { Database } from "better-sqlite3";
 import { ethers } from "ethers";
 import pRetry from "p-retry";
 import { Hash } from "@fancysofthq/supabase";
-import { timer } from "@/utils";
+import { sleep } from "@fancysofthq/supabase/utils/aux";
 import {
   TypedEvent,
   TypedEventFilter,
@@ -126,7 +126,7 @@ async function syncRealtime(
   });
 
   while (!cancel()) {
-    await timer(1000);
+    await sleep(1000);
   }
 
   contract.removeAllListeners(filter);

@@ -29,7 +29,7 @@
     "@ethersproject/contracts": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
     "@fancysoft/contracts": "^0.1.0",
-    "@fancysofthq/supabase": "^0.4.0",
+    "@fancysofthq/supabase": "0.4.1-rc1",
     "@koa/cors": "^3.3.0",
     "@koa/router": "^10.1.1",
     "@multiformats/sha3": "^2.0.14",
