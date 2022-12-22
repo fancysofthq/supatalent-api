@@ -23,7 +23,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon",
     "start": "node --experimental-specifier-resolution=node dist/src/index.js",
-    "db:migrate": "node dist/scripts/db/migrate.js"
+    "db:migrate": "node --experimental-specifier-resolution=node dist/scripts/db/migrate.js"
   },
   "dependencies": {
     "@ethersproject/contracts": "^5.7.0",
