@@ -87,6 +87,18 @@ async function syncHistorical(
   while (from < to) {
     const events = await pRetry(() => contract.queryFilter(filter, from, to));
 
+    console.log(
+      "Queried",
+      contract.address,
+      "for",
+      events.length,
+      eventTable,
+      "events from blocks",
+      from,
+      "to",
+      to
+    );
+
     db.transaction(() => {
       insert(db, events);
       setHistoricalBlockStmt.run(to);
@@ -106,6 +118,7 @@ async function syncRealtime(
 ) {
   contract.on(filter, (...data) => {
     const e: ethers.Event = data[data.length - 1];
+    console.log("Inserting realtime", e.event, "event for", contract.address);
 
     db.transaction(() => {
       insert(db, [e]);
