@@ -212,8 +212,6 @@ export default function setupTalentsController(router: Router) {
           )
       );
 
-    console.debug(mints);
-
     // List events.
     const lists = db
       .prepare(
@@ -291,8 +289,6 @@ export default function setupTalentsController(router: Router) {
             BigNumber.from(row.income)
           )
       );
-
-    console.debug(purchases);
 
     // Transfers.
     const transfers = db
