@@ -19,7 +19,6 @@ export async function sync<T extends TypedEvent>(
   db: Database,
   syncTable: string,
   historicalBlockColumn: string,
-  realtimeBlockColumn: string,
   eventTableColumn: string,
   eventTable: string,
   contract: ethers.Contract,
@@ -50,18 +49,7 @@ export async function sync<T extends TypedEvent>(
       currentBlock,
       insert
     ),
-    syncRealtime(
-      db,
-      syncTable,
-      realtimeBlockColumn,
-      eventTableColumn,
-      eventTable,
-      contract,
-      eventFilter,
-      currentBlock,
-      insert,
-      cancel
-    ),
+    syncRealtime(db, contract, eventFilter, insert, cancel),
   ]);
 }
 
@@ -111,44 +99,16 @@ async function syncHistorical(
 
 async function syncRealtime(
   db: Database,
-  syncTable: string,
-  realtimeBlockColumn: string,
-  eventTableColumn: string,
-  eventTable: string,
   contract: ethers.Contract,
   filter: ethers.EventFilter,
-  currentBlock: number,
   insert: (db: Database, events: ethers.Event[]) => void,
   cancel: () => boolean
 ) {
-  const getRealtimeBlockStmt = db
-    .prepare(
-      `SELECT ${realtimeBlockColumn}
-      FROM ${syncTable}
-      WHERE ${eventTableColumn} = '${eventTable}'`
-    )
-    .pluck();
-
-  const setRealtimeBlockStmt = db.prepare(
-    `UPDATE ${syncTable}
-    SET ${realtimeBlockColumn} = ?
-    WHERE ${eventTableColumn} = '${eventTable}'`
-  );
-
   contract.on(filter, (...data) => {
     const e: ethers.Event = data[data.length - 1];
 
     db.transaction(() => {
-      const realtimeBlock =
-        (getRealtimeBlockStmt.get() as number | undefined) || currentBlock;
-
-      if (e.blockNumber < realtimeBlock) {
-        console.warn("Received event from past block", e);
-        return;
-      }
-
       insert(db, [e]);
-      setRealtimeBlockStmt.run(e.blockNumber);
     })();
   });
 

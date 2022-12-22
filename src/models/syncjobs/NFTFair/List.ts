@@ -35,7 +35,6 @@ export class NFTFairListJob implements Job {
       db,
       "sync_jobs",
       "historical_block",
-      "realtime_block",
       "event_table",
       this.eventTable,
       contract,
